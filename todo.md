@@ -16,3 +16,4 @@
 - [x] Re-run visual and behavioral checks for the interactive scheduling trace before delivery.
 - [x] Add a browser-DOM test for Gantt hover and selection callbacks, then document the final interactive workflow validation.
 - [x] Fix the New run control so it visibly starts a fresh scheduler experiment and is covered by an interaction test.
+- [ ] Export the completed SimuOS source to a private GitHub repository for user-managed deployment.
