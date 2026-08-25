@@ -62,6 +62,16 @@ const PRESETS: Record<string, ProcessInput[]> = {
   ],
 };
 
+function createFreshWorkload(runNumber: number): ProcessInput[] {
+  const burstOffset = (runNumber - 1) % 3;
+  return [
+    { id: "P1", arrival: 0, burst: 4 + burstOffset, priority: 2, queue: 0, color: PROCESS_COLORS[0] },
+    { id: "P2", arrival: 1, burst: 6 - burstOffset, priority: 1, queue: 1, color: PROCESS_COLORS[1] },
+    { id: "P3", arrival: 3, burst: 2 + (burstOffset % 2), priority: 3, queue: 2, color: PROCESS_COLORS[2] },
+    { id: "P4", arrival: 5, burst: 3 + burstOffset, priority: 4, queue: 1, color: PROCESS_COLORS[3] },
+  ];
+}
+
 const cpuNav = [
   { id: "scheduler" as const, label: "CPU scheduler", icon: Cpu, eyebrow: "Algorithms · workloads" },
   { id: "memory" as const, label: "Memory lab", icon: MemoryStick, eyebrow: "Frames · allocation" },
@@ -152,8 +162,8 @@ function ProcessTable({ processes, onChange, onAdd, onDelete }: { processes: Pro
   );
 }
 
-function SchedulerLab({ processes, setProcesses, algorithm, setAlgorithm, quantum, setQuantum }: {
-  processes: ProcessInput[]; setProcesses: (processes: ProcessInput[]) => void; algorithm: AlgorithmId; setAlgorithm: (algorithm: AlgorithmId) => void; quantum: number; setQuantum: (value: number) => void;
+function SchedulerLab({ processes, setProcesses, algorithm, setAlgorithm, quantum, setQuantum, runNumber }: {
+  processes: ProcessInput[]; setProcesses: (processes: ProcessInput[]) => void; algorithm: AlgorithmId; setAlgorithm: (algorithm: AlgorithmId) => void; quantum: number; setQuantum: (value: number) => void; runNumber: number;
 }) {
   const result = useMemo(() => simulateCpu(algorithm, processes, { quantum, mlfqQuantums: [quantum, quantum * 2, quantum * 4] }), [algorithm, processes, quantum]);
   const [saved, setSaved] = useState(false);
@@ -184,7 +194,7 @@ function SchedulerLab({ processes, setProcesses, algorithm, setAlgorithm, quantu
       </section>
 
       <section className="control-rail panel">
-        <div className="control-heading"><div><p className="section-kicker">01 / configure run</p><h2>Dispatch policy</h2></div><div className="run-indicator"><i /> Live recompute</div></div>
+        <div className="control-heading"><div><p className="section-kicker">01 / configure run</p><h2>Dispatch policy</h2></div><div className="run-indicator" aria-live="polite"><i /> Run #{runNumber} ready</div></div>
         <div className="algorithm-grid">
           {(Object.keys(algorithmCatalog) as AlgorithmId[]).map(id => <button key={id} className={cn("algorithm-option", algorithm === id && "selected")} onClick={() => setAlgorithm(id)}><strong>{algorithmCatalog[id].label}</strong><span>{algorithmCatalog[id].description}</span></button>)}
         </div>
@@ -249,10 +259,19 @@ export default function Home() {
   const [processes, setProcesses] = useState<ProcessInput[]>(PRESETS["Interactive mix"]);
   const [algorithm, setAlgorithm] = useState<AlgorithmId>("rr");
   const [quantum, setQuantum] = useState(2);
+  const [runNumber, setRunNumber] = useState(1);
   const activeNav = cpuNav.find(item => item.id === view) ?? cpuNav[0];
+  const startNewRun = () => {
+    const nextRun = runNumber + 1;
+    setProcesses(createFreshWorkload(nextRun));
+    setAlgorithm("rr");
+    setQuantum(2);
+    setRunNumber(nextRun);
+    setView("scheduler");
+  };
 
   return <div className="simuos-shell">
     <aside className="app-sidebar"><div className="brand"><div className="brand-mark"><span /><span /><span /></div><div><b>SimuOS</b><small>Systems lab</small></div></div><div className="sidebar-section"><p>Laboratory</p>{cpuNav.map(item => <button key={item.id} onClick={() => setView(item.id)} className={cn("nav-item", view === item.id && "active")}><item.icon size={18} /><span>{item.label}</span>{view === item.id ? <i /> : null}</button>)}</div><div className="sidebar-section lower"><p>Environment</p><button className="nav-item"><BarChart3 size={18} /><span>Experiment log</span></button><button className="nav-item"><Settings2 size={18} /><span>Lab settings</span></button></div><div className="sidebar-status"><div className="pulse-core"><span /></div><div><strong>Simulation core</strong><p>Ready for input</p></div></div></aside>
-    <main className="app-main"><header className="topbar"><div><p className="crumb">SimuOS / <span>{activeNav.label}</span></p><div className="mobile-brand">Systems laboratory</div></div><div className="top-actions"><div className="build-chip"><i /> Core v0.1</div><Button size="sm" onClick={() => setView("scheduler")}><Play size={14} fill="currentColor" /> New run</Button></div></header><div className="main-scroll">{view === "scheduler" ? <SchedulerLab processes={processes} setProcesses={setProcesses} algorithm={algorithm} setAlgorithm={setAlgorithm} quantum={quantum} setQuantum={setQuantum} /> : null}{view === "memory" ? <MemoryLab /> : null}{view === "compare" ? <ComparisonLab processes={processes} quantum={quantum} /> : null}</div></main>
+    <main className="app-main"><header className="topbar"><div><p className="crumb">SimuOS / <span>{activeNav.label}</span></p><div className="mobile-brand">Systems laboratory</div></div><div className="top-actions"><div className="build-chip"><i /> Core v0.1</div><Button size="sm" onClick={startNewRun}><Play size={14} fill="currentColor" /> New run</Button></div></header><div className="main-scroll">{view === "scheduler" ? <SchedulerLab processes={processes} setProcesses={setProcesses} algorithm={algorithm} setAlgorithm={setAlgorithm} quantum={quantum} setQuantum={setQuantum} runNumber={runNumber} /> : null}{view === "memory" ? <MemoryLab /> : null}{view === "compare" ? <ComparisonLab processes={processes} quantum={quantum} /> : null}</div></main>
   </div>;
 }

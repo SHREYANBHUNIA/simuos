@@ -3,7 +3,15 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { simulateCpu } from "@/lib/simulations";
-import { GanttChart } from "./Home";
+import Home, { GanttChart } from "./Home";
+
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+vi.stubGlobal("ResizeObserver", ResizeObserverMock);
 
 describe("GanttChart interaction", () => {
   const result = simulateCpu("rr", [
@@ -21,5 +29,14 @@ describe("GanttChart interaction", () => {
 
     fireEvent.click(segments[1]);
     expect(onSelectProcess).toHaveBeenCalledWith("P2");
+  });
+
+  it("starts a new generated scheduling experiment from the header control", () => {
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: /new run/i }));
+
+    expect(screen.getByText("Run #2 ready")).not.toBeNull();
+    expect(screen.getAllByDisplayValue("5").length).toBeGreaterThan(0);
   });
 });
